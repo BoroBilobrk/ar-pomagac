@@ -26,21 +26,24 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
-      - name: Izgradnja aplikacije (Bulletproof metoda)
+      - name: Izgradnja aplikacije s dozvolama za kameru
         run: |
-          # 1. Stvaranje svježeg projekta s ispravnim imenom (neovisno o imenu repozitorija)
+          # 1. Stvaranje svježeg projekta
           flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
           
-          # 2. Prebacivanje tvog dizajna i koda u taj novi projekt
+          # 2. INJEKCIJA: Prisilno dizanje minimalne verzije Androida na 21 zbog kamere
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' flutter_app/android/app/build.gradle
+          
+          # 3. Prebacivanje koda
           cp -r lib/ flutter_app/
           cp pubspec.yaml flutter_app/
           
-          # 3. Pokretanje kompilacije unutar čiste mape
+          # 4. Kompilacija
           cd flutter_app
           flutter pub get
           flutter build apk --release
           
-          # 4. Izvlačenje gotove aplikacije van za preuzimanje
+          # 5. Izvlačenje APK-a
           cp build/app/outputs/flutter-apk/app-release.apk ../
 
       - name: Upload APK
