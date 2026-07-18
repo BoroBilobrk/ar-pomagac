@@ -26,6 +26,10 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
+      # NOVO: Brisanje problematičnog Android 35 paketa sa servera
+      - name: Popravak za Android 35 SDK bug na GitHubu
+        run: sudo rm -rf /usr/local/lib/android/sdk/platforms/android-35
+
       - name: Izgradnja aplikacije s dozvolama za kameru
         run: |
           # 1. Stvaranje svježeg projekta
