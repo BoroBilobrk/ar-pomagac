@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AR Kalkulator za Keramiku</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Live Camera Video Element -->
+  <video id="camera-feed" autoplay playsinline muted></video>
+
+  <!-- Interactive Canvas Overlay -->
+  <canvas id="overlay-canvas"></canvas>
+
+  <!-- UI Overlay -->
+  <div id="ui-container">
+    
+    <!-- Top Status Bar -->
+    <header class="hud-header">
+      <div class="logo">
+        <span class="pulse-dot"></span>
+        <h1>AR TILE HELPER</h1>
+      </div>
+      <div class="hud-status" id="status-display">Sustav spreman</div>
+    </header>
+
+    <!-- Right/Bottom floating control panel -->
+    <main class="hud-sidebar">
+      <!-- Section 1: Tile & Joint Setup -->
+      <section class="hud-panel" id="panel-setup">
+        <h2><span class="icon">📐</span> Dimenzije Pločice</h2>
+        
+        <div class="input-grid">
+          <div class="input-group">
+            <label for="tile-width">Širina W (mm)</label>
+            <input type="number" id="tile-width" value="600" min="50" max="3000">
+          </div>
+          <div class="input-group">
+            <label for="tile-height">Visina H (mm)</label>
+            <input type="number" id="tile-height" value="600" min="50" max="3000">
+          </div>
+          <div class="input-group full-width">
+            <label for="joint-width">Širina Fuge J (mm)</label>
+            <input type="number" id="joint-width" value="2" min="0" max="20" step="0.5">
+          </div>
+        </div>
+
+        <div class="presets-container">
+          <button class="preset-btn active" data-w="600" data-h="600">60x60 cm</button>
+          <button class="preset-btn" data-w="300" data-h="600">30x60 cm</button>
+          <button class="preset-btn" data-w="1200" data-h="600">120x60 cm</button>
+          <button class="preset-btn" data-w="300" data-h="300">30x30 cm</button>
+        </div>
+      </section>
+
+      <!-- Section 2: AR Grid Controls -->
+      <section class="hud-panel" id="panel-controls">
+        <h2><span class="icon">🔄</span> Poravnanje Rastera</h2>
+        
+        <div class="alignment-sliders">
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Rotacija</span>
+              <span id="val-rotation" class="mono">0°</span>
+            </div>
+            <input type="range" id="grid-rotation" min="-180" max="180" value="0">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Veličina (Skala)</span>
+              <span id="val-scale" class="mono">100%</span>
+            </div>
+            <input type="range" id="grid-scale" min="10" max="500" value="100">
+          </div>
+        </div>
+
+        <div class="control-actions">
+          <button id="btn-camera" class="action-btn icon-btn" title="Promijeni kameru">
+            📷<span>Kamera</span>
+          </button>
+          <button id="btn-reset-grid" class="action-btn secondary">Reset rastera</button>
+        </div>
+
+        <!-- Lock button - Large action -->
+        <button id="btn-lock" class="lock-btn">
+          <span class="lock-icon">🔓</span>
+          <span class="lock-text">Zaključaj i Zamrzni</span>
+        </button>
+      </section>
+
+      <!-- Section 3: Measurements and Nudge -->
+      <section class="hud-panel hidden" id="panel-measurements">
+        <h2><span class="icon">📏</span> Detalji Rupe</h2>
+        
+        <div class="ref-toggle-container">
+          <span>Referenca visine:</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="ref-mode-checkbox">
+            <label for="ref-mode-checkbox" class="toggle-label">
+              <span class="toggle-text-left">Pločica</span>
+              <span class="toggle-text-right">Laser</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Metric Outputs -->
+        <div class="measurement-results">
+          <div class="m-card">
+            <span class="m-label">Lijevo (L)</span>
+            <span class="m-val mono" id="m-left">- mm</span>
+          </div>
+          <div class="m-card">
+            <span class="m-label">Desno (D)</span>
+            <span class="m-val mono" id="m-right">- mm</span>
+          </div>
+          <div class="m-card">
+            <span class="m-label" id="label-bottom">Dolje</span>
+            <span class="m-val mono" id="m-bottom">- mm</span>
+          </div>
+          <div class="m-card">
+            <span class="m-label">Gore</span>
+            <span class="m-val mono" id="m-top">- mm</span>
+          </div>
+        </div>
+
+        <!-- Nudging controls -->
+        <div class="nudge-section">
+          <h3>Fino podešavanje (sredina rupe):</h3>
+          <div class="nudge-controls-wrapper">
+            <div class="nudge-grid">
+              <div></div>
+              <button class="nudge-btn" id="nudge-up">▲</button>
+              <div></div>
+              <button class="nudge-btn" id="nudge-left">◀</button>
+              <div class="nudge-center-indicator" id="nudge-center-val">Fi--</div>
+              <button class="nudge-btn" id="nudge-right">▶</button>
+              <div></div>
+              <button class="nudge-btn" id="nudge-down">▼</button>
+              <div></div>
+            </div>
+            
+            <div class="nudge-step-select">
+              <label for="nudge-step">Korak:</label>
+              <select id="nudge-step">
+                <option value="1">1 mm</option>
+                <option value="5" selected>5 mm</option>
+                <option value="10">10 mm</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-clear-hole" class="action-btn danger">Ukloni rupu</button>
+      </section>
+    </main>
+
+    <!-- Floating action guide at bottom -->
+    <footer class="hud-footer" id="instructions-bar">
+      Poravnajte raster s pločicom na ekranu, a zatim pritisnite "Zaključaj i Zamrzni".
+    </footer>
+  </div>
+
+  <!-- Popup Dropdown for Fi (Diameter) Selection -->
+  <div id="fi-dropdown-container" class="dropdown-popup hidden">
+    <div class="dropdown-header">Izaberi promjer rupe (Fi)</div>
+    <div class="dropdown-options">
+      <button class="fi-option" data-fi="15">fi15 mm (bakar/cijev)</button>
+      <button class="fi-option" data-fi="25">fi25 mm (dovod vode)</button>
+      <button class="fi-option" data-fi="35">fi35 mm (mješalica/ventil)</button>
+      <button class="fi-option" data-fi="40">fi40 mm (odvod 40)</button>
+      <button class="fi-option" data-fi="45">fi45 mm (odvod 45/ventil)</button>
+      <button class="fi-option" data-fi="55">fi55 mm (dovod WC)</button>
+      <button class="fi-option" data-fi="65">fi65 mm (utičnica/kutija)</button>
+    </div>
+    <button class="dropdown-close-btn" id="btn-close-dropdown">Odustani</button>
+  </div>
+
+  <!-- Javascript Entry -->
+  <script src="app.js"></script>
+</body>
+</html>
