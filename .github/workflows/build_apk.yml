@@ -1,0 +1,47 @@
+name: Build Android APK
+
+# Skripta se pokreće svaki put kada snimiš novi kod (push) ili ručno (workflow_dispatch)
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Kompajliranje Flutter Aplikacije
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Preuzimanje tvog koda
+      - name: Checkout koda
+        uses: actions/checkout@v4
+
+      # 2. Postavljanje Jave (potrebno za Android)
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Postavljanje Flutter okruženja
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0' # Koristimo stabilnu noviju verziju
+          channel: 'stable'
+
+      # 4. Preuzimanje paketa
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 5. Izgradnja instalacijske APK datoteke
+      - name: Build APK
+        run: flutter build apk --release
+
+      # 6. Spremanje gotove aplikacije da je možeš preuzeti
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BRO-KER-AR-App
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
