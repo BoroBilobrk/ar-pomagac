@@ -1,7 +1,19 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 
-void main() {
+// Globalna varijabla koja drži popis svih kamera na mobitelu
+List<CameraDescription> cameras = [];
+
+Future<void> main() async {
+  // Osiguravamo da je sustav spreman prije nego zatražimo pristup hardveru
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    cameras = await availableCameras();
+  } catch (e) {
+    debugPrint("Greška pri učitavanju kamere: $e");
+  }
+  
   runApp(const BroKerApp());
 }
 
@@ -11,173 +23,125 @@ class BroKerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AR Tile Helper',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        // Preuzeto iz style.css: --bg-solid i --accent-color
-        scaffoldBackgroundColor: const Color(0xFF0D1017),
-        primaryColor: const Color(0xFFFF6600),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFFF6600),
-          secondary: Color(0xFF00E676), // --success-color
-          error: Color(0xFFFF3D00), // --danger-color
-        ),
-        fontFamily: 'Outfit', // Tvoj odabrani font
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: Colors.black,
       ),
-      home: const ArCalculatorScreen(),
+      home: const ARScreen(),
     );
   }
 }
 
-class ArCalculatorScreen extends StatefulWidget {
-  const ArCalculatorScreen({super.key});
+class ARScreen extends StatefulWidget {
+  const ARScreen({super.key});
 
   @override
-  State<ArCalculatorScreen> createState() => _ArCalculatorScreenState();
+  State<ARScreen> createState() => _ARScreenState();
 }
 
-class _ArCalculatorScreenState extends State<ArCalculatorScreen> {
-  // Ovdje će kasnije ići varijable stanja iz app.js (tileW, tileH, isLocked...)
+class _ARScreenState extends State<ARScreen> {
+  CameraController? _controller;
+  Future<void>? _initializeControllerFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ako uređaj ima kameru, inicijaliziramo prvu (najčešće glavna stražnja) u najvišoj rezoluciji
+    if (cameras.isNotEmpty) {
+      _controller = CameraController(
+        cameras.first,
+        ResolutionPreset.max,
+        enableAudio: false, // Ne treba nam mikrofon za mjerenje pločica
+      );
+      _initializeControllerFuture = _controller!.initialize();
+    }
+  }
+
+  @override
+  void dispose() {
+    // Gasimo kameru kada se aplikacija zatvori radi štednje baterije
+    _controller?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Koristimo Stack da preklopimo UI preko kamere
       body: Stack(
         children: [
-          // 1. SLOJ: AR Kamera (Placeholder)
-          Container(
-            color: Colors.black,
-            child: const Center(
-              child: Text(
-                'AR Kamera Feed',
-                style: TextStyle(color: Colors.white54),
-              ),
-            ),
+          // 1. SLOJ: Živa slika s kamere
+          Positioned.fill(
+            child: cameras.isEmpty 
+                ? const Center(child: Text("Kamera nije pronađena"))
+                : FutureBuilder<void>(
+                    future: _initializeControllerFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        // Kamera je spremna, prikazujemo sliku
+                        return CameraPreview(_controller!);
+                      } else {
+                        // Dok se kamera pali, vrtimo indikator
+                        return const Center(child: CircularProgressIndicator(color: Colors.deepOrange));
+                      }
+                    },
+                  ),
           ),
 
-          // 2. SLOJ: Canvas za crtanje rastera (Placeholder)
-          // Ovdje će ići CustomPaint widget umjesto HTML5 Canvasa
-          
-          // 3. SLOJ: Korisničko sučelje (UI Container)
+          // 2. SLOJ: UI Elementi i stakleni paneli
           SafeArea(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // HUD Header (Logo i Status)
-                _buildHeader(),
-                
-                // Središnji dio (Desni Sidebar i prazan prostor za tapkanje)
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // HUD Sidebar (Dimenzije, Kontrole)
-                      _buildSidebar(),
+                      const Icon(Icons.circle, color: Colors.deepOrange, size: 12),
+                      const SizedBox(width: 8),
+                      const Text(
+                        "AR TILE HELPER",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white12,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: const Text("Sustav spreman"),
+                      ),
                     ],
                   ),
                 ),
-                
-                // HUD Footer (Upute)
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    'Poravnajte raster s pločicom na ekranu, a zatim pritisnite "Zaključaj i Zamrzni".',
-                    style: TextStyle(
-                      color: const Color(0xFF90A0B8), // --text-secondary
-                      fontSize: 14,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.8),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
+                const Spacer(),
+                // Prazan prostor za buduće dimenzije i alate
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6), // Glassmorphism baza
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Dimenzije Pločice", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      SizedBox(height: 8),
+                      Text("Ovdje dolaze inputi i preseti...", style: TextStyle(color: Colors.white54)),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Pretvoren .hud-header iz CSS-a
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8, height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFF6600),
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Color(0xFFFF6600), blurRadius: 10)],
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'AR TILE HELPER',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 2),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.12)),
-            ),
-            child: const Text('Sustav spreman', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Pretvoren .hud-sidebar i .hud-panel s Glassmorphism efektom
-  Widget _buildSidebar() {
-    return Container(
-      width: 340,
-      margin: const EdgeInsets.only(right: 20, top: 20, bottom: 20),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16), // --panel-blur: 16px
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F121C).withOpacity(0.75), // --bg-primary
-              border: Border.all(color: Colors.white.withOpacity(0.12)), // --border-color
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Ovdje ćemo dodati tvoje kontrole (Inputi, Slideri, Gumbi)
-                Text('📐 Dimenzije Pločice', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                SizedBox(height: 16),
-                Text('Ovdje dolaze inputi i preseti...', style: TextStyle(color: Colors.white54)),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
