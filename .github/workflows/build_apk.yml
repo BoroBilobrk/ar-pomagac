@@ -1,6 +1,5 @@
 name: Build Android APK
 
-# Skripta se pokreće svaki put kada snimiš novi kod (push) ili ručno (workflow_dispatch)
 on:
   push:
     branches: [ "main" ]
@@ -12,33 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Preuzimanje tvog koda
       - name: Checkout koda
         uses: actions/checkout@v4
 
-      # 2. Postavljanje Jave (potrebno za Android)
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # 3. Postavljanje Flutter okruženja
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0' # Koristimo stabilnu noviju verziju
+          flutter-version: '3.24.0'
           channel: 'stable'
 
-      # 4. Preuzimanje paketa
+      # OVO JE KLJUČNI NOVI KORAK: Generiranje Android mape
+      - name: Generiraj nedostajuce Flutter mape
+        run: |
+          flutter create --platforms android .
+          git checkout lib/main.dart pubspec.yaml
+
       - name: Install dependencies
         run: flutter pub get
 
-      # 5. Izgradnja instalacijske APK datoteke
       - name: Build APK
         run: flutter build apk --release
 
-      # 6. Spremanje gotove aplikacije da je možeš preuzeti
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
