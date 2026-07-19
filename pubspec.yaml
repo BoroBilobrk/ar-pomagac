@@ -1,23 +1,62 @@
-name: bro_ker_ar
-description: PAMETNI KERAMIČARSKI ALAT.
-publish_to: 'none'
-version: 1.0.0+1
+name: Build Android APK
 
-environment:
-  sdk: '>=3.0.0 <4.0.0'
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
 
-dependencies:
-  flutter:
-    sdk: flutter
-  cupertino_icons: ^1.0.8
-  ar_flutter_plugin_flutterflow: ^0.7.56
-  vector_math: ^2.1.4
+jobs:
+  build:
+    name: Kompajliranje Flutter Aplikacije
+    runs-on: ubuntu-latest
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^2.0.0
+    steps:
+      - name: Checkout koda
+        uses: actions/checkout@v4
 
-flutter:
-  uses-material-design: true
-  
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Izgradnja - Konačna fuzija pravila
+        run: |
+          # Stvaranje projekta
+          flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
+          
+          # 1. KOTLIN POPRAVAK (Zaustavlja konflikt metapodataka)
+          sed -i -E 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' flutter_app/android/settings.gradle
+          
+          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU (ARCore zahtijeva minSdk 24)
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' flutter_app/android/app/build.gradle
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
+          
+          # 3. ARCORE DOZVOLE (Ubrizgavanje u AndroidManifest)
+          sed -i 's/<application/    <uses-permission android:name="android.permission.CAMERA" \/>\n    <uses-feature android:name="android.hardware.camera.ar" android:required="true" \/>\n    <application/g' flutter_app/android/app/src/main/AndroidManifest.xml
+          sed -i 's/<activity/    <meta-data android:name="com.google.ar.core" android:value="required" \/>\n        <activity/g' flutter_app/android/app/src/main/AndroidManifest.xml
+          
+          # 4. Prebacivanje tvog koda
+          cp -r lib/ flutter_app/
+          cp pubspec.yaml flutter_app/
+          
+          # 5. Kompilacija
+          cd flutter_app
+          flutter pub get
+          flutter build apk --release
+          
+          # 6. Izvlačenje APK-a
+          cp build/app/outputs/flutter-apk/app-release.apk ../
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BRO-KER-AR-App
+          path: app-release.apk
+          
