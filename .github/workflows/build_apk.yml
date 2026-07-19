@@ -31,8 +31,8 @@ jobs:
           # Stvaranje projekta
           flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
           
-          # 1. KOTLIN POPRAVAK
-          sed -i -E 's/id "org.jetbrains.kotlin.android" version ".*" apply false/id "org.jetbrains.kotlin.android" version "1.9.24" apply false/g' flutter_app/android/settings.gradle
+          # 1. KOTLIN POPRAVAK (Širi hvatač teksta da sigurno pregazi staru verziju)
+          sed -i 's/id "org.jetbrains.kotlin.android" version.*/id "org.jetbrains.kotlin.android" version "1.9.24" apply false/' flutter_app/android/settings.gradle
           echo 'buildscript { ext.kotlin_version = "1.9.24" }' > flutter_app/android/build.gradle.tmp
           cat flutter_app/android/build.gradle >> flutter_app/android/build.gradle.tmp
           mv flutter_app/android/build.gradle.tmp flutter_app/android/build.gradle
@@ -42,16 +42,17 @@ jobs:
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
           sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' flutter_app/android/app/build.gradle
           
-          # 3. ARCORE MANIFEST
+          # 3. ARCORE MANIFEST (Dodana 'tools' putanja i naredba za pregazivanje konflikta)
           cat << 'EOF' > flutter_app/android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+                    xmlns:tools="http://schemas.android.com/tools">
               <uses-permission android:name="android.permission.CAMERA" />
               <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
               <application
                   android:label="bro_ker_ar"
                   android:name="${applicationName}"
                   android:icon="@mipmap/ic_launcher">
-                  <meta-data android:name="com.google.ar.core" android:value="required" />
+                  <meta-data android:name="com.google.ar.core" android:value="required" tools:replace="android:value" />
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
