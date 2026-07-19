@@ -31,32 +31,34 @@ jobs:
           # Stvaranje projekta
           flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
           
-          # 1. KOTLIN POPRAVAK (Zaustavlja konflikt metapodataka)
+          # 1. KOTLIN POPRAVAK
           sed -i -E 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' flutter_app/android/settings.gradle
           
-          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU (ARCore zahtijeva minSdk 24)
+          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' flutter_app/android/app/build.gradle
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
           
-          # 2.5 ARCORE DOZVOLE (Ubrizgavanje u AndroidManifest)
+          # 3. ARCORE DOZVOLE
           sed -i 's/<application/    <uses-permission android:name="android.permission.CAMERA" \/>\n    <uses-feature android:name="android.hardware.camera.ar" android:required="true" \/>\n    <application/g' flutter_app/android/app/src/main/AndroidManifest.xml
           sed -i 's/<activity/    <meta-data android:name="com.google.ar.core" android:value="required" \/>\n        <activity/g' flutter_app/android/app/src/main/AndroidManifest.xml
-          
-          # 3. ŠEFOVSKO PRAVILO (Zaključavamo apsolutno sve pakete na stabilnu verziju 34)
-          echo "allprojects { subprojects { afterEvaluate { project -> if (project.hasProperty('android')) { project.android { compileSdkVersion 34 } } } } }" > temp.gradle
-          cat flutter_app/android/build.gradle >> temp.gradle
-          mv temp.gradle flutter_app/android/build.gradle
           
           # 4. Prebacivanje tvog koda
           cp -r lib/ flutter_app/
           cp pubspec.yaml flutter_app/
           
-          # 5. Kompilacija
+          # 5. Nabavljanje paketa
           cd flutter_app
           flutter pub get
+          
+          # 6. KIRURŠKI POPRAVAK CACHEA (Za stare pakete poput geolocatora)
+          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.compileSdkVersion/34/g' {} +
+          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.minSdkVersion/24/g' {} +
+          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.targetSdkVersion/34/g' {} +
+          
+          # 7. Kompilacija
           flutter build apk --release
           
-          # 6. Izvlačenje APK-a
+          # 8. Izvlačenje APK-a
           cp build/app/outputs/flutter-apk/app-release.apk ../
 
       - name: Upload APK
