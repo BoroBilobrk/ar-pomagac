@@ -1,4 +1,4 @@
- name: Build Android APK
+name: Build Android APK
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
           # Stvaranje projekta
           flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
           
-          # 1. KOTLIN POPRAVAK (Agresivno postavljanje verzije i sigurnosna mreža)
+          # 1. KOTLIN POPRAVAK
           sed -i -E 's/id "org.jetbrains.kotlin.android" version ".*" apply false/id "org.jetbrains.kotlin.android" version "1.9.24" apply false/g' flutter_app/android/settings.gradle
           echo 'buildscript { ext.kotlin_version = "1.9.24" }' > flutter_app/android/build.gradle.tmp
           cat flutter_app/android/build.gradle >> flutter_app/android/build.gradle.tmp
@@ -42,7 +42,7 @@ jobs:
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
           sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' flutter_app/android/app/build.gradle
           
-          # 3. ARCORE MANIFEST (Potpuno prepisivanje datoteke za savršen XML format)
+          # 3. ARCORE MANIFEST
           cat << 'EOF' > flutter_app/android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.CAMERA" />
@@ -79,7 +79,7 @@ jobs:
           cd flutter_app
           flutter pub get
           
-          # 6. KIRURŠKI POPRAVAK CACHEA (Samo za stare pakete koji padaju na verziji 34)
+          # 6. KIRURŠKI POPRAVAK CACHEA
           find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.compileSdkVersion/34/g' {} +
           find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.minSdkVersion/24/g' {} +
           find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.targetSdkVersion/34/g' {} +
