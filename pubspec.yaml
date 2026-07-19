@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  ar_flutter_plugin_flutterflow: ^0.8.0
+  ar_flutter_plugin_flutterflow: ^0.7.56
   vector_math: ^2.1.4
 
 dev_dependencies:
