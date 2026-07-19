@@ -31,18 +31,18 @@ jobs:
           # Stvaranje projekta
           flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
           
-          # 1. KOTLIN POPRAVAK (Širi hvatač teksta da sigurno pregazi staru verziju)
-          sed -i 's/id "org.jetbrains.kotlin.android" version.*/id "org.jetbrains.kotlin.android" version "1.9.24" apply false/' flutter_app/android/settings.gradle
+          # 1. KOTLIN POPRAVAK (Pametni Regex hvatač otporan na razmake i nove verzije)
+          sed -i -E 's/id\s+"org\.jetbrains\.kotlin\.android"\s+version\s+"[^"]+"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' flutter_app/android/settings.gradle
           echo 'buildscript { ext.kotlin_version = "1.9.24" }' > flutter_app/android/build.gradle.tmp
           cat flutter_app/android/build.gradle >> flutter_app/android/build.gradle.tmp
           mv flutter_app/android/build.gradle.tmp flutter_app/android/build.gradle
           
-          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' flutter_app/android/app/build.gradle
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
-          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' flutter_app/android/app/build.gradle
+          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU (Prepoznaje stari "minSdkVersion" i novi "minSdk =")
+          sed -i -E 's/minSdk(Version)?\s*=?\s*flutter\.minSdkVersion/minSdk = 24/g' flutter_app/android/app/build.gradle
+          sed -i -E 's/compileSdk(Version)?\s*=?\s*flutter\.compileSdkVersion/compileSdk = 34/g' flutter_app/android/app/build.gradle
+          sed -i -E 's/targetSdk(Version)?\s*=?\s*flutter\.targetSdkVersion/targetSdk = 34/g' flutter_app/android/app/build.gradle
           
-          # 3. ARCORE MANIFEST (Dodana 'tools' putanja i naredba za pregazivanje konflikta)
+          # 3. ARCORE MANIFEST
           cat << 'EOF' > flutter_app/android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
                     xmlns:tools="http://schemas.android.com/tools">
@@ -81,9 +81,9 @@ jobs:
           flutter pub get
           
           # 6. KIRURŠKI POPRAVAK CACHEA
-          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.compileSdkVersion/34/g' {} +
-          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.minSdkVersion/24/g' {} +
-          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.targetSdkVersion/34/g' {} +
+          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i -E 's/flutter\.compileSdkVersion/34/g' {} +
+          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i -E 's/flutter\.minSdkVersion/24/g' {} +
+          find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i -E 's/flutter\.targetSdkVersion/34/g' {} +
           
           # 7. Kompilacija
           flutter build apk --release
