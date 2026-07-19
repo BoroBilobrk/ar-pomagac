@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 
@@ -23,13 +24,14 @@ class BroKerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
-        sliderTheme: SliderThemeData(
+                sliderTheme: SliderThemeData(
           activeTrackColor: const Color(0xFFFF6B00),
           inactiveTrackColor: Colors.white24,
           thumbColor: const Color(0xFFFF6B00),
           overlayColor: const Color(0x29FF6B00),
-          valueTextStyle: const TextStyle(color: Colors.white),
+          valueIndicatorTextStyle: const TextStyle(color: Colors.white), // <-- PREPRAVLJENO
         ),
+        
       ),
       home: const ARScreen(),
     );
@@ -152,14 +154,15 @@ class _ARScreenState extends State<ARScreen> {
                       const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                                                    Text(
                             "AR TILE",
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.black, letterSpacing: 1.5, color: Colors.white),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white), // <-- PREPRAVLJENO
                           ),
                           Text(
                             "HELPER",
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.black, letterSpacing: 1.5, color: Colors.white),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white), // <-- PREPRAVLJENO
                           ),
+                          
                         ],
                       ),
                       const SizedBox(width: 12),
