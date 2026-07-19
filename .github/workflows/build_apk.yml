@@ -1,4 +1,4 @@
-name: Build Android APK
+ name: Build Android APK
 
 on:
   push:
@@ -31,17 +31,45 @@ jobs:
           # Stvaranje projekta
           flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
           
-          # 1. KOTLIN POPRAVAK (Glavna postavka + Sigurnosna mreža za stare pakete)
-          sed -i -E 's/(id\s*["'\'']org\.jetbrains\.kotlin\.android["'\'']\s*version\s*["'\''])[^"'\'']+(["'\''])/\11.9.24\2/g' flutter_app/android/settings.gradle
-          sed -i '1i buildscript { ext.kotlin_version = "1.9.24" }' flutter_app/android/build.gradle
+          # 1. KOTLIN POPRAVAK (Agresivno postavljanje verzije i sigurnosna mreža)
+          sed -i -E 's/id "org.jetbrains.kotlin.android" version ".*" apply false/id "org.jetbrains.kotlin.android" version "1.9.24" apply false/g' flutter_app/android/settings.gradle
+          echo 'buildscript { ext.kotlin_version = "1.9.24" }' > flutter_app/android/build.gradle.tmp
+          cat flutter_app/android/build.gradle >> flutter_app/android/build.gradle.tmp
+          mv flutter_app/android/build.gradle.tmp flutter_app/android/build.gradle
           
           # 2. INJEKCIJE ZA GLAVNU APLIKACIJU
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' flutter_app/android/app/build.gradle
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' flutter_app/android/app/build.gradle
           
-          # 3. ARCORE DOZVOLE (Koristimo AWK alat da ubacimo dozvole samo JEDNOM i spriječimo duplikate!)
-          awk '/<application/ && !app_done { print "    <uses-permission android:name=\"android.permission.CAMERA\" />"; print "    <uses-feature android:name=\"android.hardware.camera.ar\" android:required=\"true\" />"; app_done=1 } 1' flutter_app/android/app/src/main/AndroidManifest.xml > temp.xml && mv temp.xml flutter_app/android/app/src/main/AndroidManifest.xml
-          awk '/<activity/ && !act_done { print "        <meta-data android:name=\"com.google.ar.core\" android:value=\"required\" />"; act_done=1 } 1' flutter_app/android/app/src/main/AndroidManifest.xml > temp.xml && mv temp.xml flutter_app/android/app/src/main/AndroidManifest.xml
+          # 3. ARCORE MANIFEST (Potpuno prepisivanje datoteke za savršen XML format)
+          cat << 'EOF' > flutter_app/android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.CAMERA" />
+              <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
+              <application
+                  android:label="bro_ker_ar"
+                  android:name="${applicationName}"
+                  android:icon="@mipmap/ic_launcher">
+                  <meta-data android:name="com.google.ar.core" android:value="required" />
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme" />
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data android:name="flutterEmbedding" android:value="2" />
+              </application>
+          </manifest>
+          EOF
           
           # 4. Prebacivanje tvog koda
           cp -r lib/ flutter_app/
@@ -51,7 +79,7 @@ jobs:
           cd flutter_app
           flutter pub get
           
-          # 6. KIRURŠKI POPRAVAK CACHEA (Za stare pakete)
+          # 6. KIRURŠKI POPRAVAK CACHEA (Samo za stare pakete koji padaju na verziji 34)
           find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.compileSdkVersion/34/g' {} +
           find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.minSdkVersion/24/g' {} +
           find /home/runner/.pub-cache/hosted/pub.dev/ -name "build.gradle" -type f -exec sed -i 's/flutter\.targetSdkVersion/34/g' {} +
