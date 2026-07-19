@@ -26,25 +26,27 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
-      - name: Izgradnja aplikacije i injekcija pravila
+      - name: Izgradnja aplikacije i postavljanje strogih pravila za pakete
         run: |
           # 1. Stvaranje svježeg projekta
           flutter create --org hr.broker --project-name bro_ker_ar --platforms android flutter_app
           
-          # 2. INJEKCIJE: Podešavanje Android verzija direktno u kodu (zaobilazimo bugove)
+          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU (Podižemo minSdk na 21 zbog kamere)
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' flutter_app/android/app/build.gradle
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
           
-          # 3. Prebacivanje tvog koda
+          # 3. ŠEFOVSKO PRAVILO ZA SVE POD-PAKETE (Prisiljavamo sve na Android 34)
+          echo "subprojects { afterEvaluate { project -> if (project.hasProperty('android')) { project.android { compileSdkVersion 34 } } } }" >> flutter_app/android/build.gradle
+          
+          # 4. Prebacivanje tvog koda
           cp -r lib/ flutter_app/
           cp pubspec.yaml flutter_app/
           
-          # 4. Kompilacija
+          # 5. Kompilacija
           cd flutter_app
           flutter pub get
           flutter build apk --release
           
-          # 5. Izvlačenje APK-a
+          # 6. Izvlačenje APK-a
           cp build/app/outputs/flutter-apk/app-release.apk ../
 
       - name: Upload APK
