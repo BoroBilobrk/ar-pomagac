@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 
-// Globalna varijabla koja drži popis svih kamera na mobitelu
 List<CameraDescription> cameras = [];
 
 Future<void> main() async {
-  // Osiguravamo da je sustav spreman prije nego zatražimo pristup hardveru
   WidgetsFlutterBinding.ensureInitialized();
-  
   try {
     cameras = await availableCameras();
   } catch (e) {
     debugPrint("Greška pri učitavanju kamere: $e");
   }
-  
   runApp(const BroKerApp());
 }
 
@@ -46,12 +42,11 @@ class _ARScreenState extends State<ARScreen> {
   @override
   void initState() {
     super.initState();
-    // Ako uređaj ima kameru, inicijaliziramo prvu (najčešće glavna stražnja) u najvišoj rezoluciji
     if (cameras.isNotEmpty) {
       _controller = CameraController(
         cameras.first,
         ResolutionPreset.max,
-        enableAudio: false, // Ne treba nam mikrofon za mjerenje pločica
+        enableAudio: false,
       );
       _initializeControllerFuture = _controller!.initialize();
     }
@@ -59,7 +54,6 @@ class _ARScreenState extends State<ARScreen> {
 
   @override
   void dispose() {
-    // Gasimo kameru kada se aplikacija zatvori radi štednje baterije
     _controller?.dispose();
     super.dispose();
   }
@@ -69,7 +63,7 @@ class _ARScreenState extends State<ARScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. SLOJ: Živa slika s kamere
+          // 1. SLOJ: Živa slika s kamere (popunjena preko cijelog ekrana)
           Positioned.fill(
             child: cameras.isEmpty 
                 ? const Center(child: Text("Kamera nije pronađena"))
@@ -77,17 +71,24 @@ class _ARScreenState extends State<ARScreen> {
                     future: _initializeControllerFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.done) {
-                        // Kamera je spremna, prikazujemo sliku
-                        return CameraPreview(_controller!);
+                        return SizedBox.expand(
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: _controller!.value.previewSize!.height,
+                              height: _controller!.value.previewSize!.width,
+                              child: CameraPreview(_controller!),
+                            ),
+                          ),
+                        );
                       } else {
-                        // Dok se kamera pali, vrtimo indikator
                         return const Center(child: CircularProgressIndicator(color: Colors.deepOrange));
                       }
                     },
                   ),
           ),
 
-          // 2. SLOJ: UI Elementi i stakleni paneli
+          // 2. SLOJ: UI Elementi
           SafeArea(
             child: Column(
               children: [
@@ -99,11 +100,7 @@ class _ARScreenState extends State<ARScreen> {
                       const SizedBox(width: 8),
                       const Text(
                         "AR TILE HELPER",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 2),
                       ),
                       const Spacer(),
                       Container(
@@ -119,22 +116,29 @@ class _ARScreenState extends State<ARScreen> {
                   ),
                 ),
                 const Spacer(),
-                // Prazan prostor za buduće dimenzije i alate
+                
+                // 3. SLOJ: Panel za dimenzije
                 Container(
                   margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
-                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6), // Glassmorphism baza
-                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(color: Colors.white24),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Dimenzije Pločice", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      SizedBox(height: 8),
-                      Text("Ovdje dolaze inputi i preseti...", style: TextStyle(color: Colors.white54)),
+                      const Text("Dimenzije Pločice (cm)", 
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.deepOrange)),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(child: _buildInput("Širina")),
+                          const SizedBox(width: 16),
+                          Expanded(child: _buildInput("Visina")),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -142,6 +146,18 @@ class _ARScreenState extends State<ARScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInput(String label) {
+    return TextField(
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.white10,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       ),
     );
   }
