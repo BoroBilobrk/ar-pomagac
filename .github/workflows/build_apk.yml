@@ -1,4 +1,4 @@
-name: Build Android APK
+Name: Build Android APK
 
 on:
   push:
@@ -34,9 +34,13 @@ jobs:
           # 1. KOTLIN POPRAVAK (Zaustavlja konflikt metapodataka)
           sed -i -E 's/id "org\.jetbrains\.kotlin\.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' flutter_app/android/settings.gradle
           
-          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU (Kamera minSdk 21)
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' flutter_app/android/app/build.gradle
+          # 2. INJEKCIJE ZA GLAVNU APLIKACIJU (ARCore zahtijeva minSdk 24)
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' flutter_app/android/app/build.gradle
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' flutter_app/android/app/build.gradle
+          
+          # 2.5 ARCORE DOZVOLE (Ubrizgavanje u AndroidManifest)
+          sed -i 's/<application/    <uses-permission android:name="android.permission.CAMERA" \/>\n    <uses-feature android:name="android.hardware.camera.ar" android:required="true" \/>\n    <application/g' flutter_app/android/app/src/main/AndroidManifest.xml
+          sed -i 's/<activity/    <meta-data android:name="com.google.ar.core" android:value="required" \/>\n        <activity/g' flutter_app/android/app/src/main/AndroidManifest.xml
           
           # 3. ŠEFOVSKO PRAVILO (Zaključavamo apsolutno sve pakete na stabilnu verziju 34)
           echo "allprojects { subprojects { afterEvaluate { project -> if (project.hasProperty('android')) { project.android { compileSdkVersion 34 } } } } }" > temp.gradle
