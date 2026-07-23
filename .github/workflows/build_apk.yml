@@ -41,16 +41,18 @@ jobs:
           sed -i -E 's/compileSdk(Version)?\s*=?\s*flutter\.compileSdkVersion/compileSdk = 34/g' flutter_app/android/app/build.gradle
           sed -i -E 's/targetSdk(Version)?\s*=?\s*flutter\.targetSdkVersion/targetSdk = 34/g' flutter_app/android/app/build.gradle
           
-          # 3. ARCORE MANIFEST
+          # 3. ARCORE MANIFEST (DODAN INTERNET)
           cat << 'EOF' > flutter_app/android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
                     xmlns:tools="http://schemas.android.com/tools">
               <uses-permission android:name="android.permission.CAMERA" />
+              <uses-permission android:name="android.permission.INTERNET" />
               <uses-feature android:name="android.hardware.camera.ar" android:required="true" />
               <application
                   android:label="bro_ker_ar"
                   android:name="${applicationName}"
-                  android:icon="@mipmap/ic_launcher">
+                  android:icon="@mipmap/ic_launcher"
+                  android:usesCleartextTraffic="true">
                   <meta-data android:name="com.google.ar.core" android:value="required" tools:replace="android:value" />
                   <activity
                       android:name=".MainActivity"
