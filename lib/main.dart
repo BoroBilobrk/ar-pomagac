@@ -150,7 +150,8 @@ class _ARRadniEkranState extends State<ARRadniEkran> {
     
     var novaPlocica = ARNode(
         type: NodeType.webGLB,
-        uri: "https://github.com/KhronosGroup/glTF-Sample-Models/raw/master/2.0/Box/glTF-Binary/Box.glb",
+        // NOVI, ISPRAVNI LINK BEZ PREUSMJERAVANJA
+        uri: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Box/glTF-Binary/Box.glb",
         scale: vector.Vector3(sirinaPlocice, 0.01, duzinaPlocice),
         position: vector.Vector3(
             transform.getColumn(3).x,
